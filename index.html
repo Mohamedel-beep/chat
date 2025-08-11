@@ -1,0 +1,681 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>محادثة أونلاين - مشاركة النصوص المطورة</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            direction: rtl;
+        }
+
+        .chat-container {
+            width: 90%;
+            max-width: 800px;
+            height: 80vh;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .chat-header {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .chat-header h1 {
+            font-size: 1.5em;
+            margin-bottom: 5px;
+        }
+
+        .chat-header p {
+            opacity: 0.9;
+            font-size: 0.9em;
+        }
+
+        .connection-status {
+            padding: 10px 20px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.9em;
+        }
+
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #28a745;
+            animation: pulse 2s infinite;
+        }
+
+        .status-dot.disconnected {
+            background: #dc3545;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .online-users {
+            background: #f0f8ff;
+            padding: 10px 20px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 0.9em;
+            color: #0066cc;
+        }
+
+        .messages-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 15px;
+            padding: 12px 15px;
+            border-radius: 15px;
+            max-width: 70%;
+            word-wrap: break-word;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.sent {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            margin-right: auto;
+            margin-left: 30%;
+        }
+
+        .message.received {
+            background: white;
+            color: #333;
+            margin-left: auto;
+            margin-right: 30%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+        }
+
+        .message.system {
+            background: #fff3cd;
+            color: #856404;
+            margin: 10px auto;
+            text-align: center;
+            max-width: 60%;
+            font-size: 0.9em;
+        }
+
+        .message.file {
+            background: #e8f5e8;
+            border-left: 4px solid #28a745;
+            color: #155724;
+        }
+
+        .message.file.sent {
+            background: linear-gradient(45deg, #28a745, #20c997);
+            color: white;
+            border-left: none;
+        }
+
+        .message-info {
+            font-size: 0.8em;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .file-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-top: 5px;
+        }
+
+        .download-btn {
+            background: rgba(255,255,255,0.2);
+            color: inherit;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 0.8em;
+        }
+
+        .typing-indicator {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 15px;
+            margin: 10px 30% 10px auto;
+            max-width: 70%;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+            animation: pulse 1.5s infinite;
+        }
+
+        .typing-dots {
+            display: inline-flex;
+            gap: 3px;
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: typing 1.4s infinite;
+        }
+
+        .typing-dot:nth-child(1) { animation-delay: 0s; }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+            30% { transform: translateY(-10px); opacity: 1; }
+        }
+
+        .input-area {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #e9ecef;
+            display: flex;
+            gap: 10px;
+        }
+
+        .file-upload {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-upload input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-upload-btn {
+            padding: 12px 20px;
+            background: #28a745;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .file-upload-btn:hover {
+            background: #218838;
+        }
+
+        .message-input {
+            flex: 1;
+            padding: 12px 15px;
+            border: 2px solid #e9ecef;
+            border-radius: 25px;
+            font-size: 1em;
+            outline: none;
+            transition: border-color 0.3s ease;
+        }
+
+        .message-input:focus {
+            border-color: #667eea;
+        }
+
+        .send-button {
+            padding: 12px 25px;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+            font-weight: bold;
+        }
+
+        .send-button:hover {
+            transform: translateY(-2px);
+        }
+
+        .send-button:active {
+            transform: translateY(0);
+        }
+
+        .send-button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .clear-button {
+            padding: 12px 20px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .clear-button:hover {
+            background: #c82333;
+        }
+
+        .room-info {
+            background: #e3f2fd;
+            padding: 15px;
+            margin: 10px 20px;
+            border-radius: 10px;
+            text-align: center;
+            color: #1976d2;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #28a745;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 1000;
+            transform: translateX(400px);
+            transition: transform 0.3s ease;
+        }
+
+        .notification.show {
+            transform: translateX(0);
+        }
+
+        .notification.error {
+            background: #dc3545;
+        }
+
+        @media (max-width: 600px) {
+            .chat-container {
+                width: 95%;
+                height: 90vh;
+            }
+            
+            .message {
+                max-width: 85%;
+            }
+            
+            .message.sent {
+                margin-left: 15%;
+            }
+            
+            .message.received {
+                margin-right: 15%;
+            }
+
+            .input-area {
+                padding: 15px;
+                flex-wrap: wrap;
+            }
+
+            .message-input {
+                min-width: 60%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <h1>📱 محادثة أونلاين</h1>
+            <p>شارك النصوص بين ويندوز ولينكس بسهولة</p>
+        </div>
+
+        <div class="connection-status">
+            <div class="status-indicator">
+                <div class="status-dot" id="statusDot"></div>
+                <span id="connectionStatus">جاري الاتصال...</span>
+            </div>
+            <div id="roomId">الغرفة: MAIN</div>
+        </div>
+
+        <div class="online-users" id="onlineUsers">
+            👥 المتصلين الآن: <span id="userCount">-</span>
+        </div>
+
+        <div class="messages-area" id="messagesArea">
+            <div class="room-info">
+                🌟 مرحباً! جاري تحميل الرسائل...
+            </div>
+        </div>
+
+        <div class="input-area">
+            <div class="file-upload">
+                <input type="file" id="fileInput" accept="*/*">
+                <button class="file-upload-btn" onclick="document.getElementById('fileInput').click()">📎</button>
+            </div>
+            <input type="text" class="message-input" id="messageInput" placeholder="اكتب رسالتك هنا..." maxlength="500">
+            <button class="send-button" id="sendButton" onclick="sendMessage()">إرسال</button>
+            <button class="clear-button" onclick="clearMessages()">مسح</button>
+        </div>
+    </div>
+
+    <!-- Socket.IO -->
+    <script src="/socket.io/socket.io.js"></script>
+    
+    <script>
+        // إعدادات التطبيق
+        let socket = null;
+        let isConnected = false;
+        let typingTimeout = null;
+        let messages = [];
+        
+        // بيانات المستخدم
+        let currentUser = localStorage.getItem('chatUser') || generateUserId();
+        let userName = localStorage.getItem('userName') || prompt('ما اسمك؟') || 'مجهول';
+        let currentRoom = 'main';
+        
+        localStorage.setItem('chatUser', currentUser);
+        localStorage.setItem('userName', userName);
+
+        function generateUserId() {
+            return 'user_' + Math.random().toString(36).substr(2, 9);
+        }
+
+        // الاتصال بالسيرفر
+        function connectToServer() {
+            socket = io();
+            
+            socket.on('connect', () => {
+                isConnected = true;
+                updateConnectionStatus('متصل', true);
+                
+                // الانضمام للغرفة
+                socket.emit('join-room', {
+                    room: currentRoom,
+                    userName: userName
+                });
+                
+                console.log('🎉 تم الاتصال بالسيرفر!');
+            });
+            
+            socket.on('disconnect', () => {
+                isConnected = false;
+                updateConnectionStatus('منقطع', false);
+                console.log('❌ انقطع الاتصال بالسيرفر');
+            });
+
+            // استلام الرسائل السابقة
+            socket.on('previous-messages', (oldMessages) => {
+                messages = oldMessages;
+                displayMessages();
+            });
+            
+            // رسالة جديدة
+            socket.on('new-message', (message) => {
+                messages.push(message);
+                displayMessages();
+                showNotification('رسالة جديدة من ' + message.userName);
+                playNotificationSound();
+            });
+            
+            // مؤشر الكتابة
+            socket.on('user-typing', (data) => {
+                showTypingIndicator(data.userName);
+            });
+            
+            socket.on('user-stopped-typing', (data) => {
+                hideTypingIndicator();
+            });
+            
+            // تحديث عدد المتصلين
+            socket.on('users-count', (count) => {
+                document.getElementById('userCount').textContent = count;
+            });
+
+            // أحداث النظام
+            socket.on('user-joined', (data) => {
+                showSystemMessage(data.message);
+            });
+
+            socket.on('user-left', (data) => {
+                showSystemMessage(data.message);
+            });
+
+            socket.on('messages-cleared', (data) => {
+                messages = [];
+                displayMessages();
+                showSystemMessage(`تم مسح الرسائل بواسطة ${data.by}`);
+            });
+
+            // معالجة الأخطاء
+            socket.on('connect_error', (error) => {
+                console.error('خطأ في الاتصال:', error);
+                updateConnectionStatus('خطأ في الاتصال', false);
+            });
+        }
+
+        function updateConnectionStatus(status, connected) {
+            const statusElement = document.getElementById('connectionStatus');
+            const statusDot = document.getElementById('statusDot');
+            
+            statusElement.textContent = status;
+            statusDot.className = connected ? 'status-dot' : 'status-dot disconnected';
+        }
+
+        function displayMessages() {
+            const messagesArea = document.getElementById('messagesArea');
+            messagesArea.innerHTML = '';
+
+            if (messages.length === 0) {
+                messagesArea.innerHTML = '<div class="room-info">🌟 مرحباً! ابدأ بكتابة رسالتك الأولى</div>';
+                return;
+            }
+
+            messages.forEach(msg => {
+                const messageDiv = document.createElement('div');
+                
+                if (msg.type === 'file') {
+                    messageDiv.className = `message file ${msg.userId === currentUser ? 'sent' : 'received'}`;
+                    messageDiv.innerHTML = `
+                        <div>📎 ${msg.fileName}</div>
+                        <div class="file-info">
+                            <small>${formatFileSize(msg.fileSize)}</small>
+                            ${msg.fileData ? `<button class="download-btn" onclick="downloadFile('${msg.fileData}', '${msg.fileName}')">تحميل</button>` : ''}
+                        </div>
+                        <div class="message-info">${msg.userName || 'مجهول'} • ${new Date(msg.timestamp).toLocaleTimeString('ar-EG')}</div>
+                    `;
+                } else {
+                    messageDiv.className = `message ${msg.userId === currentUser ? 'sent' : 'received'}`;
+                    messageDiv.innerHTML = `
+                        <div>${msg.text}</div>
+                        <div class="message-info">${msg.userName || 'مجهول'} • ${new Date(msg.timestamp).toLocaleTimeString('ar-EG')}</div>
+                    `;
+                }
+                
+                messagesArea.appendChild(messageDiv);
+            });
+
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
+
+        function showSystemMessage(text) {
+            const messagesArea = document.getElementById('messagesArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system';
+            messageDiv.innerHTML = `
+                <div>${text}</div>
+                <div class="message-info">${new Date().toLocaleTimeString('ar-EG')}</div>
+            `;
+            messagesArea.appendChild(messageDiv);
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text || !isConnected) return;
+
+            const message = {
+                text: text,
+                userId: currentUser,
+                userName: userName,
+                type: 'text'
+            };
+
+            // إضافة للرسائل المحلية
+            messages.push({
+                ...message,
+                timestamp: Date.now()
+            });
+            
+            // إرسال للسيرفر
+            socket.emit('send-message', message);
+            
+            input.value = '';
+            displayMessages();
+            
+            // إيقاف مؤشر الكتابة
+            socket.emit('stop-typing');
+        }
+
+        // رفع الملفات
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file || !isConnected) return;
+            
+            if (file.size > 5 * 1024 * 1024) {
+                showNotification('حجم الملف كبير جداً! الحد الأقصى 5 ميجابايت', true);
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const message = {
+                    fileName: file.name,
+                    fileSize: file.size,
+                    fileData: e.target.result,
+                    userId: currentUser,
+                    userName: userName,
+                    type: 'file'
+                };
+                
+                messages.push({
+                    ...message,
+                    timestamp: Date.now()
+                });
+                
+                socket.emit('send-message', message);
+                displayMessages();
+                showNotification('تم إرسال الملف بنجاح');
+            };
+            
+            reader.readAsDataURL(file);
+            e.target.value = '';
+        });
+
+        function downloadFile(dataUrl, fileName) {
+            const link = document.createElement('a');
+            link.href = dataUrl;
+            link.download = fileName;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+        }
+
+        function clearMessages() {
+            if (!isConnected) return;
+            
+            if (confirm('هل تريد مسح كل الرسائل للجميع؟')) {
+                socket.emit('clear-messages');
+            }
+        }
+
+        // مؤشر الكتابة
+        let isTyping = false;
+        document.getElementById('messageInput').addEventListener('input', function() {
+            if (!isConnected) return;
+            
+            if (!isTyping) {
+                isTyping = true;
+                socket.emit('typing', { userName: userName });
+            }
+            
+            clearTimeout(typingTimeout);
+            typingTimeout = setTimeout(() => {
+                isTyping = false;
+                socket.emit('stop-typing');
+            }, 2000);
+        });
+
+        function showTypingIndicator(userName) {
+            hideTypingIndicator(); // إزالة القديم
+            
+            const messagesArea = document.getElementById('messagesArea');
+            const typingDiv = document.createElement('div');
+            typingDiv.id = 'typing-indicator';
+            typingDiv.className = 'typing-indicator';
+            typingDiv.innerHTML = `
+                <span>${userName} يكتب</span>
+                <div class="typing-dots">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            `;
+            messagesArea.appendChild(typingDiv);
+            messagesArea.scrollTop = messagesArea.scrollHeight;
+            
+            // إزالة تلقائية بعد 5 ثوان
+            setTimeout(hideTypingIndicator, 5000);
+        }
+
+        function hideTypingIndicator() {
+            const typingDiv = document.getElementById('typing-indicator');
+            if (typingDiv) {
+                typingDiv.remove();
+            }
+        }
+
+        function showNotification(message, isError = false) {
+            // طلب إذن الإشعار
