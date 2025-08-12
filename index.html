@@ -3,1129 +3,528 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>شات دارك ويب</title>
+    <title>شات دارك ويب — نسخة محسنة</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
+        /* --- نفس تصميم النسخة الأصلية مع تحسينات بسيطة --- */
+        * { margin:0; padding:0; box-sizing:border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color:#0a0a0a; min-height:100vh; color:#e0e0e0; background-image:url('https://i.imgur.com/JF9gUPa.png'); background-size:cover; background-position:center; }
+        .container{ max-width:1200px; margin:0 auto; padding:20px; display:flex; flex-direction:column; gap:18px; }
+        header{ background-color:rgba(20,20,20,0.9); padding:12px; border-radius:8px; text-align:center; }
+        header h1{ color:#bb86fc; }
+        .login-container, .register-container, .chat-container{ background-color:rgba(20,20,20,0.8); padding:20px; border-radius:12px; box-shadow:0 5px 20px rgba(0,0,0,0.8); border:1px solid #333; }
+        .login-form, .register-form{ max-width:420px; margin:0 auto; }
+        .form-group{ margin-bottom:16px; position:relative; }
+        .form-group label{ display:block; margin-bottom:6px; color:#bb86fc; }
+        .form-group input{ width:100%; padding:12px 14px 12px 40px; border-radius:8px; background:#1a1a1a; color:#e0e0e0; border:1px solid #444; }
+        .form-group i{ position:absolute; left:12px; top:36px; color:#bb86fc; }
+        .btn{ background:#bb86fc; color:#121212; padding:12px; border-radius:8px; border:none; width:100%; font-weight:700; cursor:pointer; }
+        .btn:hover{ transform:translateY(-2px); }
+        .error-message{ background:rgba(207,102,121,0.12); color:#cf6679; padding:10px; border-radius:8px; display:none; }
+        .success-message{ background:rgba(3,218,198,0.12); color:#03dac6; padding:10px; border-radius:8px; display:none; }
 
-        body {
-            background-color: #0a0a0a;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            color: #e0e0e0;
-            background-image: linear-gradient(rgba(0, 0, 0, 0.7), rgba(0, 0, 0, 0.7)), url('https://i.imgur.com/JF9gUPa.png');
-            background-size: cover;
-            background-position: center;
-            background-attachment: fixed;
-        }
+        /* chat */
+        .chat-header{ display:flex; justify-content:space-between; align-items:center; gap:12px; }
+        .chat-messages{ max-height:420px; overflow:auto; padding:16px; background:rgba(10,10,10,0.7); border-radius:8px; }
+        .message{ margin-bottom:14px; max-width:80%; display:flex; flex-direction:column; animation:messageIn .25s ease; }
+        .message.sent{ align-self:flex-start; }
+        .message.received{ align-self:flex-end; }
+        .message .message-content{ padding:12px 16px; border-radius:14px; word-break:break-word; }
+        .message.sent .message-content{ background:#bb86fc; color:#121212; }
+        .message.received .message-content{ background:#2d2d2d; color:#e0e0e0; }
+        .message-info{ font-size:12px; color:#aaa; margin-top:6px; display:flex; gap:8px; align-items:center; }
+        .message-actions{ display:flex; gap:8px; margin-top:6px; }
+        .message-action-btn{ background:none; border:none; color:#888; cursor:pointer; }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
+        .chat-input-container{ display:flex; gap:8px; margin-top:12px; align-items:center; }
+        .chat-input{ flex:1; padding:12px 14px; border-radius:20px; background:#1a1a1a; color:#e0e0e0; border:1px solid #444; }
+        .send-btn{ width:46px; height:46px; border-radius:50%; border:none; background:#bb86fc; color:#121212; cursor:pointer; }
 
-        /* تنسيق الهيدر */
-        header {
-            background-color: rgba(20, 20, 20, 0.9);
-            color: #e0e0e0;
-            padding: 15px 0;
-            text-align: center;
-            border-radius: 8px 8px 0 0;
-            border-bottom: 1px solid #333;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.8);
-            backdrop-filter: blur(10px);
-        }
+        .status-indicator{ padding:8px 12px; border-radius:8px; background:rgba(3,218,198,0.08); color:#03dac6; display:flex; gap:8px; align-items:center; }
+        .online-users{ max-height:100px; overflow:auto; padding:8px; border-radius:8px; background:rgba(20,20,20,0.7); }
+        .typing-indicator{ font-style:italic; color:#aaa; display:none; }
 
-        header h1 {
-            margin: 0;
-            font-size: 28px;
-            color: #bb86fc;
-            text-shadow: 0 0 10px rgba(187, 134, 252, 0.5);
-            letter-spacing: 1px;
-        }
+        @keyframes messageIn{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
 
-        /* تنسيق نموذج تسجيل الدخول */
-        .login-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            padding: 30px;
-            background-color: rgba(20, 20, 20, 0.8);
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.8);
-            margin-bottom: 20px;
-            border: 1px solid #333;
-            backdrop-filter: blur(10px);
-            animation: fadeIn 0.5s ease-in-out;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(-20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .login-form {
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .form-group {
-            margin-bottom: 20px;
-            position: relative;
-        }
-
-        .form-group label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: bold;
-            color: #bb86fc;
-            font-size: 16px;
-            letter-spacing: 0.5px;
-        }
-
-        .form-group input {
-            width: 100%;
-            padding: 12px 15px 12px 40px;
-            border: 1px solid #444;
-            border-radius: 8px;
-            font-size: 16px;
-            background-color: #1a1a1a;
-            color: #e0e0e0;
-            transition: all 0.3s ease;
-        }
-
-        .form-group i {
-            position: absolute;
-            left: 12px;
-            top: 40px;
-            color: #bb86fc;
-            font-size: 18px;
-        }
-
-        .form-group input:focus {
-            outline: none;
-            border-color: #bb86fc;
-            box-shadow: 0 0 10px rgba(187, 134, 252, 0.5);
-            background-color: #222;
-        }
-
-        .btn {
-            background-color: #bb86fc;
-            color: #121212;
-            border: none;
-            padding: 12px 15px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-size: 16px;
-            width: 100%;
-            font-weight: bold;
-            letter-spacing: 1px;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
-        }
-
-        .btn:hover {
-            background-color: #a370db;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 8px rgba(0, 0, 0, 0.4);
-        }
-
-        .btn:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        /* تنسيق منطقة الشات */
-        .chat-container {
-            display: none;
-            flex: 1;
-            flex-direction: column;
-            background-color: rgba(20, 20, 20, 0.8);
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.8);
-            overflow: hidden;
-            border: 1px solid #333;
-            backdrop-filter: blur(10px);
-            animation: fadeIn 0.5s ease-in-out;
-        }
-
-        .chat-header {
-            background-color: rgba(10, 10, 10, 0.9);
-            color: #e0e0e0;
-            padding: 15px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 1px solid #333;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-        }
-
-        .chat-header h2 {
-            margin: 0;
-            font-size: 20px;
-            color: #bb86fc;
-            text-shadow: 0 0 5px rgba(187, 134, 252, 0.3);
-        }
-
-        .logout-btn {
-            background-color: #cf6679;
-            color: #121212;
-            border: none;
-            padding: 8px 12px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-            font-weight: bold;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        .logout-btn:hover {
-            background-color: #b55a68;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.4);
-        }
-
-        .chat-messages {
-            flex: 1;
-            padding: 20px;
-            overflow-y: auto;
-            max-height: 500px;
-            background-color: rgba(10, 10, 10, 0.7);
-            background-blend-mode: overlay;
-        }
-
-        .message {
-            margin-bottom: 20px;
-            display: flex;
-            flex-direction: column;
-            max-width: 80%;
-            animation: messageIn 0.3s ease-out;
-        }
-
-        @keyframes messageIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .message.sent {
-            align-self: flex-end;
-        }
-
-        .message.received {
-            align-self: flex-start;
-        }
-
-        .message-content {
-            padding: 12px 18px;
-            border-radius: 18px;
-            word-wrap: break-word;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-            position: relative;
-        }
-
-        .message.sent .message-content {
-            background-color: #bb86fc;
-            color: #121212;
-            border-bottom-right-radius: 5px;
-        }
-
-        .message.sent .message-content::before {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            right: -10px;
-            width: 20px;
-            height: 20px;
-            background-color: #bb86fc;
-            clip-path: polygon(0 0, 0 100%, 100% 100%);
-        }
-
-        .message.received .message-content {
-            background-color: #2d2d2d;
-            color: #e0e0e0;
-            border-bottom-left-radius: 5px;
-        }
-
-        .message.received .message-content::before {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: -10px;
-            width: 20px;
-            height: 20px;
-            background-color: #2d2d2d;
-            clip-path: polygon(100% 100%, 100% 0, 0 100%);
-        }
-
-        .message-info {
-            font-size: 12px;
-            color: #aaa;
-            margin-top: 5px;
-            display: flex;
-            align-items: center;
-        }
-
-        .message.sent .message-info {
-            margin-right: 10px;
-            justify-content: flex-end;
-        }
-
-        .message.received .message-info {
-            margin-left: 10px;
-            justify-content: flex-start;
-        }
-
-        .message-info i {
-            margin-left: 5px;
-            font-size: 10px;
-        }
-
-        .chat-input-container {
-            padding: 15px;
-            border-top: 1px solid #333;
-            display: flex;
-            align-items: center;
-            background-color: rgba(20, 20, 20, 0.9);
-            box-shadow: 0 -2px 5px rgba(0, 0, 0, 0.3);
-        }
-
-        .chat-input {
-            flex: 1;
-            padding: 12px 15px;
-            border: 1px solid #444;
-            border-radius: 20px;
-            font-size: 16px;
-            margin-left: 10px;
-            background-color: #1a1a1a;
-            color: #e0e0e0;
-            transition: all 0.3s ease;
-        }
-
-        .chat-input:focus {
-            outline: none;
-            border-color: #bb86fc;
-            box-shadow: 0 0 10px rgba(187, 134, 252, 0.5);
-            background-color: #222;
-        }
-
-        .send-btn {
-            background-color: #bb86fc;
-            color: #121212;
-            border: none;
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            font-size: 18px;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
-        }
-
-        .send-btn:hover {
-            background-color: #a370db;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-        }
-
-        .send-btn:active {
-            transform: translateY(0);
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        /* تنسيق نموذج التسجيل */
-        .register-link {
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .register-link a {
-            color: #bb86fc;
-            text-decoration: none;
-            font-weight: bold;
-            transition: all 0.3s ease;
-        }
-
-        .register-link a:hover {
-            text-decoration: underline;
-            color: #a370db;
-            text-shadow: 0 0 5px rgba(187, 134, 252, 0.3);
-        }
-
-        .register-container {
-            display: none;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100%;
-            padding: 30px;
-            background-color: rgba(20, 20, 20, 0.8);
-            border-radius: 12px;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.8);
-            margin-bottom: 20px;
-            border: 1px solid #333;
-            backdrop-filter: blur(10px);
-            animation: fadeIn 0.5s ease-in-out;
-        }
-
-        .register-form {
-            width: 100%;
-            max-width: 400px;
-        }
-
-        .error-message {
-            background-color: rgba(207, 102, 121, 0.2);
-            color: #cf6679;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            border: 1px solid #cf6679;
-            animation: shake 0.5s ease-in-out;
-        }
-
-        @keyframes shake {
-            0%, 100% { transform: translateX(0); }
-            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
-            20%, 40%, 60%, 80% { transform: translateX(5px); }
-        }
-
-        .success-message {
-            background-color: rgba(3, 218, 198, 0.2);
-            color: #03dac6;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            border: 1px solid #03dac6;
-            animation: pulse 1.5s infinite;
-        }
-
-        @keyframes pulse {
-            0% { box-shadow: 0 0 0 0 rgba(3, 218, 198, 0.4); }
-            70% { box-shadow: 0 0 0 10px rgba(3, 218, 198, 0); }
-            100% { box-shadow: 0 0 0 0 rgba(3, 218, 198, 0); }
-        }
-
-        h2 {
-            color: #bb86fc;
-            margin-bottom: 25px;
-            text-align: center;
-            font-size: 24px;
-            text-shadow: 0 0 5px rgba(187, 134, 252, 0.3);
-            letter-spacing: 1px;
-        }
-
-        /* تنسيق شريط التمرير */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: rgba(20, 20, 20, 0.8);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: #444;
-            border-radius: 4px;
-            transition: all 0.3s ease;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: #bb86fc;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-        }
-
-        #currentUser {
-            margin-left: 10px;
-            color: #03dac6;
-            font-weight: bold;
-            text-shadow: 0 0 5px rgba(3, 218, 198, 0.3);
-        }
-        
-        .status-indicator {
-            background-color: rgba(3, 218, 198, 0.2);
-            color: #03dac6;
-            padding: 8px 12px;
-            border-radius: 8px;
-            margin: 10px 20px;
-            text-align: center;
-            font-size: 14px;
-            border: 1px solid #03dac6;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        
-        .status-indicator i {
-            margin-right: 8px;
-            animation: spin 2s linear infinite;
-        }
-        
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-        
-        .online-users {
-            margin: 10px 20px;
-            padding: 10px;
-            background-color: rgba(20, 20, 20, 0.7);
-            border-radius: 8px;
-            max-height: 100px;
-            overflow-y: auto;
-            border: 1px solid #333;
-        }
-        
-        .online-users-header {
-            color: #bb86fc;
-            font-size: 14px;
-            margin-bottom: 8px;
-            display: flex;
-            align-items: center;
-        }
-        
-        .online-users-header i {
-            margin-left: 8px;
-            color: #03dac6;
-        }
-        
-        .online-user {
-            padding: 5px 10px;
-            margin-bottom: 5px;
-            border-radius: 4px;
-            background-color: rgba(45, 45, 45, 0.7);
-            color: #03dac6;
-            display: flex;
-            align-items: center;
-            animation: fadeIn 0.5s ease-in-out;
-        }
-        
-        .online-user i {
-            margin-left: 8px;
-            font-size: 12px;
-            color: #03dac6;
-        }
-        
-        .typing-indicator {
-            padding: 10px;
-            font-style: italic;
-            color: #aaa;
-            display: none;
-        }
-        
-        .typing-indicator::after {
-            content: '.';
-            animation: typing 1.5s infinite;
-        }
-        
-        @keyframes typing {
-            0% { content: '.'; }
-            33% { content: '..'; }
-            66% { content: '...'; }
-            100% { content: '.'; }
-        }
-        
-        .message-actions {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 5px;
-            opacity: 0;
-            transition: opacity 0.3s ease;
-        }
-        
-        .message:hover .message-actions {
-            opacity: 1;
-        }
-        
-        .message-action-btn {
-            background: none;
-            border: none;
-            color: #888;
-            cursor: pointer;
-            margin-left: 10px;
-            font-size: 12px;
-            transition: all 0.3s ease;
-        }
-        
-        .message-action-btn:hover {
-            color: #bb86fc;
-        }
+        /* small screens */
+        @media (max-width:600px){ .container{ padding:12px } .chat-messages{ max-height:300px } }
     </style>
 </head>
 <body>
     <div class="container">
-        <header>
-            <h1>شات دارك ويب</h1>
-        </header>
+        <header><h1>شات دارك ويب — نسخة محسنة</h1></header>
 
-        <!-- نموذج تسجيل الدخول -->
         <div class="login-container" id="loginContainer">
             <div class="login-form">
                 <h2>تسجيل الدخول</h2>
-                <div class="error-message" id="loginError" style="display: none;"></div>
+                <div class="error-message" id="loginError"></div>
                 <div class="form-group">
                     <label for="username">اسم المستخدم</label>
                     <i class="fas fa-user"></i>
-                    <input type="text" id="username" placeholder="أدخل اسم المستخدم" required>
+                    <input type="text" id="username" placeholder="أدخل اسم المستخدم" autocomplete="username">
                 </div>
                 <div class="form-group">
                     <label for="password">كلمة المرور</label>
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="password" placeholder="أدخل كلمة المرور" required>
+                    <input type="password" id="password" placeholder="أدخل كلمة المرور" autocomplete="current-password">
                 </div>
                 <button class="btn" id="loginBtn">تسجيل الدخول</button>
-                <div class="register-link">
-                    <p>ليس لديك حساب؟ <a href="#" id="showRegisterBtn">إنشاء حساب جديد</a></p>
-                </div>
+                <p style="text-align:center; margin-top:10px;">ليس لديك حساب؟ <a href="#" id="showRegisterBtn">إنشاء حساب جديد</a></p>
             </div>
         </div>
 
-        <!-- نموذج التسجيل -->
-        <div class="register-container" id="registerContainer">
+        <div class="register-container" id="registerContainer" style="display:none;">
             <div class="register-form">
                 <h2>إنشاء حساب جديد</h2>
-                <div class="error-message" id="registerError" style="display: none;"></div>
-                <div class="success-message" id="registerSuccess" style="display: none;"></div>
+                <div class="error-message" id="registerError"></div>
+                <div class="success-message" id="registerSuccess"></div>
                 <div class="form-group">
                     <label for="newUsername">اسم المستخدم</label>
                     <i class="fas fa-user-plus"></i>
-                    <input type="text" id="newUsername" placeholder="أدخل اسم المستخدم" required>
+                    <input type="text" id="newUsername" placeholder="أدخل اسم المستخدم" autocomplete="username">
                 </div>
                 <div class="form-group">
                     <label for="newPassword">كلمة المرور</label>
                     <i class="fas fa-lock"></i>
-                    <input type="password" id="newPassword" placeholder="أدخل كلمة المرور" required>
+                    <input type="password" id="newPassword" placeholder="أدخل كلمة المرور" autocomplete="new-password">
                 </div>
                 <div class="form-group">
                     <label for="confirmPassword">تأكيد كلمة المرور</label>
                     <i class="fas fa-check-circle"></i>
-                    <input type="password" id="confirmPassword" placeholder="أعد إدخال كلمة المرور" required>
+                    <input type="password" id="confirmPassword" placeholder="أعد إدخال كلمة المرور">
                 </div>
                 <button class="btn" id="registerBtn">إنشاء حساب</button>
-                <div class="register-link">
-                    <p>لديك حساب بالفعل؟ <a href="#" id="showLoginBtn">تسجيل الدخول</a></p>
+                <p style="text-align:center; margin-top:10px;">لديك حساب بالفعل؟ <a href="#" id="showLoginBtn">تسجيل الدخول</a></p>
+            </div>
+        </div>
+
+        <div class="chat-container" id="chatContainer" style="display:none;">
+            <div class="chat-header">
+                <h2><i class="fas fa-comment-alt"></i> شات دارك ويب</h2>
+                <div style="display:flex; gap:12px; align-items:center;">
+                    <div id="currentUser" style="color:#03dac6; font-weight:bold;"></div>
+                    <button class="btn" id="logoutBtn" style="background:#cf6679; color:#121212; padding:8px 10px; width:auto;">تسجيل الخروج</button>
+                </div>
+            </div>
+
+            <div class="status-indicator" id="statusIndicator"> <i class="fas fa-sync-alt"></i> جاري التزامن...</div>
+
+            <div style="display:flex; gap:12px; margin-top:12px;">
+                <div style="flex:1;">
+                    <div class="chat-messages" id="chatMessages"></div>
+                    <div class="chat-input-container">
+                        <input type="text" id="messageInput" class="chat-input" placeholder="اكتب رسالتك هنا..." autocomplete="off">
+                        <button class="send-btn" id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                    <div class="typing-indicator" id="typingIndicator">يكتب الآن...</div>
+                </div>
+                <div style="width:260px;">
+                    <div class="online-users" id="onlineUsers">
+                        <div style="color:#bb86fc; font-weight:bold; margin-bottom:8px;"> <i class="fas fa-circle"></i> المستخدمون المتصلون (<span id="onlineCount">0</span>)</div>
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- منطقة الشات -->
-        <div class="chat-container" id="chatContainer">
-            <div class="chat-header">
-                <h2><i class="fas fa-comment-alt"></i> شات دارك ويب</h2>
-                <div class="user-info">
-                    <span id="currentUser"></span>
-                    <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> تسجيل الخروج</button>
-                </div>
-            </div>
-            <div class="status-indicator" id="statusIndicator"><i class="fas fa-sync-alt"></i> جاري تحديث الرسائل...</div>
-            <div class="online-users" id="onlineUsers">
-                <div class="online-users-header">
-                    <i class="fas fa-circle"></i> المستخدمون المتصلون
-                </div>
-                <!-- هنا سيظهر المستخدمون المتصلون -->
-            </div>
-            <div class="typing-indicator" id="typingIndicator">يكتب الآن</div>
-            <div class="chat-messages" id="chatMessages">
-                <!-- هنا ستظهر الرسائل -->
-            </div>
-            <div class="chat-input-container">
-                <input type="text" class="chat-input" id="messageInput" placeholder="اكتب رسالتك هنا...">
-                <button class="send-btn" id="sendBtn"><i class="fas fa-paper-plane"></i></button>
-            </div>
-        </div>
     </div>
 
     <script>
-        // استخدام localStorage لتخزين البيانات
-        let users = JSON.parse(localStorage.getItem('darkwebUsers')) || [];
-        let messages = JSON.parse(localStorage.getItem('darkwebMessages')) || [];
-        let currentUser = null;
-        let lastMessageId = 0;
-        let onlineUsers = JSON.parse(localStorage.getItem('darkwebOnlineUsers')) || [];
-        let messageFile = JSON.parse(localStorage.getItem('darkwebMessageFile')) || [];
-        let isTyping = false;
-        let typingTimeout;
-        
-        // عناصر DOM
-        const loginContainer = document.getElementById('loginContainer');
-        const registerContainer = document.getElementById('registerContainer');
-        const chatContainer = document.getElementById('chatContainer');
-        const loginBtn = document.getElementById('loginBtn');
-        const registerBtn = document.getElementById('registerBtn');
-        const logoutBtn = document.getElementById('logoutBtn');
-        const showRegisterBtn = document.getElementById('showRegisterBtn');
-        const showLoginBtn = document.getElementById('showLoginBtn');
-        const sendBtn = document.getElementById('sendBtn');
-        const messageInput = document.getElementById('messageInput');
-        const chatMessages = document.getElementById('chatMessages');
-        const currentUserElement = document.getElementById('currentUser');
-        const loginError = document.getElementById('loginError');
-        const registerError = document.getElementById('registerError');
-        const registerSuccess = document.getElementById('registerSuccess');
-        const statusIndicator = document.getElementById('statusIndicator');
-        const onlineUsersContainer = document.getElementById('onlineUsers');
-        const typingIndicator = document.getElementById('typingIndicator');
+    /*
+        نسخة محسنة من الشات:
+        - لا نحفظ كلمات المرور بنص واضح: نحفظ هاش SHA-256 في localStorage
+        - مزامنة بين تبويبات نفس المتصفح باستخدام BroadcastChannel (الرسائل، قائمة المتصلين، مؤشر الكتابة)
+        - تحسين منع XSS عن طريق استخدام textContent وتهيئة رسائل النظام بعناية
+        - إصلاح بعض الأخطاء الطفيفة (تكرار المستخدم، متغيرات غير مستخدمة)
+        - جعل حذف الرسائل القديمة قابل للتهيئة (افتراضي 120 ثانية كما كان)
+    */
 
-        // التحقق من وجود مستخدم مسجل الدخول
-        if (localStorage.getItem('currentDarkwebUser')) {
-            currentUser = localStorage.getItem('currentDarkwebUser');
-            currentUserElement.textContent = `${currentUser}`;
-            loginContainer.style.display = 'none';
-            chatContainer.style.display = 'flex';
-            addUserToOnline(currentUser);
-            loadMessages();
+    // ---------- إعدادات ----------
+    const STORAGE_USERS = 'darkwebUsers_v2';
+    const STORAGE_MESSAGES = 'darkwebMessages_v2';
+    const STORAGE_ONLINE = 'darkwebOnlineUsers_v2';
+    const STORAGE_MESSAGE_FILE = 'darkwebMessageFile_v2';
+
+    // حذف الرسائل الأقدم من (ms) — افتراضي 120000 ms = 120 ثانية
+    const MAX_MESSAGE_AGE_MS = 120000; // يمكن تغييره
+
+    // عناصر DOM
+    const loginContainer = document.getElementById('loginContainer');
+    const registerContainer = document.getElementById('registerContainer');
+    const chatContainer = document.getElementById('chatContainer');
+    const loginBtn = document.getElementById('loginBtn');
+    const registerBtn = document.getElementById('registerBtn');
+    const logoutBtn = document.getElementById('logoutBtn');
+    const showRegisterBtn = document.getElementById('showRegisterBtn');
+    const showLoginBtn = document.getElementById('showLoginBtn');
+    const sendBtn = document.getElementById('sendBtn');
+    const messageInput = document.getElementById('messageInput');
+    const chatMessages = document.getElementById('chatMessages');
+    const currentUserElement = document.getElementById('currentUser');
+    const loginError = document.getElementById('loginError');
+    const registerError = document.getElementById('registerError');
+    const registerSuccess = document.getElementById('registerSuccess');
+    const statusIndicator = document.getElementById('statusIndicator');
+    const onlineUsersContainer = document.getElementById('onlineUsers');
+    const typingIndicator = document.getElementById('typingIndicator');
+    const onlineCount = document.getElementById('onlineCount');
+
+    // البيانات المحلية
+    let users = JSON.parse(localStorage.getItem(STORAGE_USERS) || '[]');
+    let messages = JSON.parse(localStorage.getItem(STORAGE_MESSAGES) || '[]');
+    let messageFile = JSON.parse(localStorage.getItem(STORAGE_MESSAGE_FILE) || '[]');
+    let onlineUsers = JSON.parse(localStorage.getItem(STORAGE_ONLINE) || '[]');
+    let currentUser = null;
+    let isTyping = false;
+    let typingTimeout = null;
+
+    // BroadcastChannel للمزامنة بين تبويبات المتصفح
+    let bc;
+    try { bc = new BroadcastChannel('darkweb_channel_v2'); } catch (e) { bc = null; }
+
+    function broadcast(action, payload){
+        if (!bc) return;
+        bc.postMessage({ action, payload });
+    }
+
+    if (bc) {
+        bc.onmessage = (ev) => {
+            const { action, payload } = ev.data || {};
+            if (!action) return;
+            switch(action){
+                case 'new-message':
+                    // تجنب إضافة مكرر
+                    if (!messages.some(m => m.id === payload.id)){
+                        messages.push(payload);
+                        localStorage.setItem(STORAGE_MESSAGES, JSON.stringify(messages));
+                        addMessageToChat(payload);
+                        scrollChatToBottom();
+                    }
+                    break;
+                case 'user-joined':
+                    addUserToOnlineLocal(payload.username, false);
+                    break;
+                case 'user-left':
+                    removeUserFromOnlineLocal(payload.username, false);
+                    break;
+                case 'typing':
+                    showTypingIndicator(payload.username, payload.isTyping);
+                    break;
+                case 'sync-request':
+                    // أحد التبويبات يطلب مزامنة: نرسل بياناتنا الحالية
+                    bc.postMessage({ action:'sync-response', payload: { messages, onlineUsers } });
+                    break;
+                case 'sync-response':
+                    // ادمج البيانات المستلمة
+                    mergeMessages(payload.messages || []);
+                    mergeOnline(payload.onlineUsers || []);
+                    break;
+            }
+        };
+    }
+
+    // عند بدء تشغيل تبويب جديد نطلب مزامنة
+    if (bc) broadcast('sync-request', {});
+
+    // ---------- وظائف مساعدة ----------
+    function saveAll(){
+        localStorage.setItem(STORAGE_USERS, JSON.stringify(users));
+        localStorage.setItem(STORAGE_MESSAGES, JSON.stringify(messages));
+        localStorage.setItem(STORAGE_MESSAGE_FILE, JSON.stringify(messageFile));
+        localStorage.setItem(STORAGE_ONLINE, JSON.stringify(onlineUsers));
+    }
+
+    function escapeHTML(str){
+        // بسيطة وآمنة بما يكفي لرسائل الدردشة (نستخدم textContent غالبًا)
+        const p = document.createElement('div');
+        p.textContent = str;
+        return p.innerHTML;
+    }
+
+    function scrollChatToBottom(){ chatMessages.scrollTop = chatMessages.scrollHeight; }
+
+    function formatTime(ts){ const d = new Date(ts); return d.toLocaleTimeString(); }
+
+    // --------- تجزئة كلمة المرور (SHA-256) ---------
+    async function hashPassword(password){
+        const enc = new TextEncoder();
+        const data = enc.encode(password);
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        return hashArray.map(b => b.toString(16).padStart(2,'0')).join('');
+    }
+
+    // ---------- إدارة المستخدمين المتصلين (محلي + بث) ----------
+    function addUserToOnlineLocal(username, broadcastFlag=true){
+        if (!username) return;
+        if (!onlineUsers.includes(username)){
+            onlineUsers.push(username);
+            saveAll();
             updateOnlineUsersList();
+            if (broadcastFlag) broadcast('user-joined', { username });
         }
+    }
 
-        // إظهار نموذج التسجيل
-        showRegisterBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            loginContainer.style.display = 'none';
-            registerContainer.style.display = 'flex';
+    function removeUserFromOnlineLocal(username, broadcastFlag=true){
+        onlineUsers = onlineUsers.filter(u => u !== username);
+        saveAll();
+        updateOnlineUsersList();
+        if (broadcastFlag) broadcast('user-left', { username });
+    }
+
+    function updateOnlineUsersList(){
+        // مسح القديم
+        while (onlineUsersContainer.childNodes.length > 1) onlineUsersContainer.removeChild(onlineUsersContainer.lastChild);
+        // إضافة
+        onlineUsers.forEach(user => {
+            const div = document.createElement('div');
+            div.style.padding = '6px 8px';
+            div.style.marginBottom = '6px';
+            div.style.borderRadius = '6px';
+            div.style.background = 'rgba(45,45,45,0.6)';
+            div.style.color = '#03dac6';
+            div.textContent = `${user}${user === currentUser ? ' (أنت)' : ''}`;
+            onlineUsersContainer.appendChild(div);
         });
+        onlineCount.textContent = onlineUsers.length;
+    }
 
-        // إظهار نموذج تسجيل الدخول
-        showLoginBtn.addEventListener('click', function(e) {
-            e.preventDefault();
-            registerContainer.style.display = 'none';
-            loginContainer.style.display = 'flex';
-        });
+    // ---------- إضافة رسالة للشات (مع حماية XSS) ----------
+    function addMessageToChat(message){
+        // منع إضافة مكرر
+        if (document.querySelector(`.message[data-id='${message.id}']`)) return;
 
-        // تسجيل الدخول
-        loginBtn.addEventListener('click', function() {
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
+        const el = document.createElement('div');
+        el.classList.add('message');
+        el.dataset.id = message.id;
 
-            if (!username || !password) {
-                loginError.textContent = 'يرجى إدخال اسم المستخدم وكلمة المرور';
-                loginError.style.display = 'block';
-                return;
+        if (message.isSystem){
+            el.style.alignSelf = 'center';
+            const content = document.createElement('div');
+            content.style.backgroundColor = 'rgba(187,134,252,0.12)';
+            content.style.color = '#bb86fc';
+            content.style.padding = '8px 12px';
+            content.style.borderRadius = '12px';
+            content.style.textAlign = 'center';
+            // امن: نستخدم textContent
+            content.textContent = message.content;
+            el.appendChild(content);
+        } else {
+            el.classList.add(message.sender === currentUser ? 'sent' : 'received');
+            const content = document.createElement('div');
+            content.classList.add('message-content');
+            content.textContent = message.content; // آمن
+
+            const info = document.createElement('div');
+            info.classList.add('message-info');
+            info.textContent = `${message.sender} • ${formatTime(message.timestamp)}`;
+
+            const actions = document.createElement('div');
+            actions.classList.add('message-actions');
+
+            if (message.sender === currentUser){
+                const del = document.createElement('button');
+                del.classList.add('message-action-btn');
+                del.title = 'حذف الرسالة';
+                del.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                del.onclick = () => deleteMessage(message.id);
+                actions.appendChild(del);
             }
 
-            const user = users.find(u => u.username === username && u.password === password);
+            const reply = document.createElement('button');
+            reply.classList.add('message-action-btn');
+            reply.title = 'رد';
+            reply.innerHTML = '<i class="fas fa-reply"></i>';
+            reply.onclick = () => replyToMessage(message);
+            actions.appendChild(reply);
 
-            if (user) {
-                currentUser = username;
-                localStorage.setItem('currentDarkwebUser', currentUser);
-                currentUserElement.textContent = `${currentUser}`;
-                loginContainer.style.display = 'none';
-                chatContainer.style.display = 'flex';
-                addUserToOnline(currentUser);
-                loadMessages();
-                updateOnlineUsersList();
-                loginError.style.display = 'none';
-                
-                // إضافة رسالة نظام للإعلام بتسجيل الدخول
-                const systemMessage = {
-                    id: Date.now(),
-                    sender: 'النظام',
-                    content: `${currentUser} انضم إلى المحادثة`,
-                    timestamp: new Date().toISOString(),
-                    isSystem: true
-                };
-                addMessageToFile(systemMessage);
-            } else {
-                loginError.textContent = 'اسم المستخدم أو كلمة المرور غير صحيحة';
-                loginError.style.display = 'block';
-            }
-        });
-
-        // تسجيل مستخدم جديد
-        registerBtn.addEventListener('click', function() {
-            const newUsername = document.getElementById('newUsername').value;
-            const newPassword = document.getElementById('newPassword').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-
-            if (!newUsername || !newPassword || !confirmPassword) {
-                registerError.textContent = 'يرجى ملء جميع الحقول';
-                registerError.style.display = 'block';
-                registerSuccess.style.display = 'none';
-                return;
-            }
-
-            if (newPassword !== confirmPassword) {
-                registerError.textContent = 'كلمات المرور غير متطابقة';
-                registerError.style.display = 'block';
-                registerSuccess.style.display = 'none';
-                return;
-            }
-
-            if (users.some(u => u.username === newUsername)) {
-                registerError.textContent = 'اسم المستخدم موجود بالفعل';
-                registerError.style.display = 'block';
-                registerSuccess.style.display = 'none';
-                return;
-            }
-
-            // إضافة المستخدم الجديد
-            users.push({ username: newUsername, password: newPassword });
-            localStorage.setItem('darkwebUsers', JSON.stringify(users));
-            registerSuccess.textContent = 'تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول';
-            registerSuccess.style.display = 'block';
-            registerError.style.display = 'none';
-
-            // إعادة تعيين النموذج
-            document.getElementById('newUsername').value = '';
-            document.getElementById('newPassword').value = '';
-            document.getElementById('confirmPassword').value = '';
-
-            // العودة إلى نموذج تسجيل الدخول بعد ثانيتين
-            setTimeout(function() {
-                registerContainer.style.display = 'none';
-                loginContainer.style.display = 'flex';
-                registerSuccess.style.display = 'none';
-            }, 2000);
-        });
-
-        // تسجيل الخروج
-        logoutBtn.addEventListener('click', function() {
-            // إضافة رسالة نظام للإعلام بتسجيل الخروج
-            const systemMessage = {
-                id: Date.now(),
-                sender: 'النظام',
-                content: `${currentUser} غادر المحادثة`,
-                timestamp: new Date().toISOString(),
-                isSystem: true
-            };
-            addMessageToFile(systemMessage);
-            
-            removeUserFromOnline(currentUser);
-            currentUser = null;
-            localStorage.removeItem('currentDarkwebUser');
-            chatContainer.style.display = 'none';
-            loginContainer.style.display = 'flex';
-            document.getElementById('username').value = '';
-            document.getElementById('password').value = '';
-        });
-
-        // إرسال رسالة
-        sendBtn.addEventListener('click', sendMessage);
-        messageInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
-        
-        // تتبع الكتابة
-        messageInput.addEventListener('input', function() {
-            if (!isTyping && messageInput.value.trim() !== '') {
-                isTyping = true;
-                updateTypingStatus(true);
-            }
-            
-            clearTimeout(typingTimeout);
-            typingTimeout = setTimeout(function() {
-                isTyping = false;
-                updateTypingStatus(false);
-            }, 2000);
-        });
-
-        function sendMessage() {
-            const content = messageInput.value.trim();
-            if (!content) return;
-
-            const newMessage = {
-                id: Date.now(),
-                sender: currentUser,
-                content: content,
-                timestamp: new Date().toISOString()
-            };
-
-            // إضافة الرسالة إلى ملف الرسائل
-            addMessageToFile(newMessage);
-            
-            // إضافة الرسالة إلى واجهة المستخدم
-            addMessageToChat(newMessage);
-            messageInput.value = '';
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            
-            // إيقاف مؤشر الكتابة
-            isTyping = false;
-            updateTypingStatus(false);
+            el.appendChild(content);
+            el.appendChild(info);
+            el.appendChild(actions);
         }
 
-        // إضافة رسالة إلى ملف الرسائل
-        function addMessageToFile(message) {
-            messageFile.push(message);
-            localStorage.setItem('darkwebMessageFile', JSON.stringify(messageFile));
-        }
+        chatMessages.appendChild(el);
+    }
 
-        // تحميل الرسائل من الملف
-        function loadMessagesFromFile() {
-            // تحديث مؤشر الحالة
-            statusIndicator.innerHTML = `<i class="fas fa-sync-alt"></i> آخر تحديث: ${formatDate(new Date())}`;
-            
-            // البحث عن رسائل جديدة
-            const newMessages = messageFile.filter(msg => {
-                // تحقق مما إذا كانت الرسالة جديدة (لم نرها من قبل)
-                const isNew = !messages.some(existingMsg => existingMsg.id === msg.id);
-                return isNew;
-            });
-            
-            if (newMessages.length > 0) {
-                // إضافة الرسائل الجديدة إلى المصفوفة المحلية
-                messages = [...messages, ...newMessages];
-                
-                // إضافة الرسائل الجديدة إلى واجهة المستخدم
-                newMessages.forEach(message => {
-                    addMessageToChat(message);
-                });
-                
-                // تمرير إلى أسفل لرؤية الرسائل الجديدة
-                chatMessages.scrollTop = chatMessages.scrollHeight;
-                
-                // تحديث localStorage
-                localStorage.setItem('darkwebMessages', JSON.stringify(messages));
-            }
-        }
+    // ---------- إرسال رسالة ----------
+    function sendMessage(){
+        const content = messageInput.value.trim();
+        if (!content || !currentUser) return;
 
-        // تحميل الرسائل
-        function loadMessages() {
-            chatMessages.innerHTML = '';
-            // تحميل الرسائل من localStorage أولاً
-            messages.forEach(message => {
-                addMessageToChat(message);
-            });
-            
-            // ثم تحميل أي رسائل جديدة من الملف
-            loadMessagesFromFile();
-            
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-        }
+        const msg = { id: Date.now().toString() + Math.random().toString(36).slice(2,6), sender: currentUser, content, timestamp: new Date().toISOString() };
+        messages.push(msg);
+        messageFile.push(msg);
+        saveAll();
+        addMessageToChat(msg);
+        scrollChatToBottom();
+        messageInput.value = '';
 
-        // إضافة رسالة إلى الشات
-        function addMessageToChat(message) {
-            const messageElement = document.createElement('div');
-            messageElement.classList.add('message');
-            
-            // التعامل مع رسائل النظام بشكل مختلف
-            if (message.isSystem) {
-                messageElement.style.alignSelf = 'center';
-                messageElement.style.maxWidth = '100%';
-                messageElement.style.textAlign = 'center';
-                messageElement.style.margin = '10px 0';
-                
-                const contentElement = document.createElement('div');
-                contentElement.style.backgroundColor = 'rgba(187, 134, 252, 0.2)';
-                contentElement.style.color = '#bb86fc';
-                contentElement.style.padding = '8px 15px';
-                contentElement.style.borderRadius = '20px';
-                contentElement.style.fontSize = '14px';
-                contentElement.innerHTML = `<i class="fas fa-info-circle"></i> ${message.content}`;
-                
-                messageElement.appendChild(contentElement);
-            } else {
-                // رسائل عادية
-                messageElement.classList.add(message.sender === currentUser ? 'sent' : 'received');
-                messageElement.dataset.id = message.id;
+        // نذيع الرسالة للتبويبات الأخرى
+        broadcast('new-message', msg);
+    }
 
-                const contentElement = document.createElement('div');
-                contentElement.classList.add('message-content');
-                contentElement.textContent = message.content;
+    // ---------- حذف رسالة ----------
+    function deleteMessage(id){
+        messageFile = messageFile.filter(m => m.id !== id);
+        messages = messages.filter(m => m.id !== id);
+        saveAll();
+        const el = document.querySelector(`.message[data-id='${id}']`);
+        if (el) el.remove();
+        // إضافة رسالة نظام لإعلام الحذف
+        const sys = { id: Date.now().toString(), sender: 'النظام', content: `تم حذف رسالة بواسطة ${currentUser}`, timestamp: new Date().toISOString(), isSystem:true };
+        messageFile.push(sys); messages.push(sys); saveAll(); addMessageToChat(sys);
+        broadcast('new-message', sys);
+    }
 
-                const infoElement = document.createElement('div');
-                infoElement.classList.add('message-info');
-                const date = new Date(message.timestamp);
-                infoElement.innerHTML = `${message.sender} <i class="fas fa-clock"></i> ${formatDate(date)}`;
-                
-                // إضافة أزرار التفاعل مع الرسالة
-                const actionsElement = document.createElement('div');
-                actionsElement.classList.add('message-actions');
-                
-                if (message.sender === currentUser) {
-                    const deleteBtn = document.createElement('button');
-                    deleteBtn.classList.add('message-action-btn');
-                    deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
-                    deleteBtn.title = 'حذف الرسالة';
-                    deleteBtn.onclick = function() {
-                        deleteMessage(message.id);
-                    };
-                    actionsElement.appendChild(deleteBtn);
-                }
-                
-                const replyBtn = document.createElement('button');
-                replyBtn.classList.add('message-action-btn');
-                replyBtn.innerHTML = '<i class="fas fa-reply"></i>';
-                replyBtn.title = 'رد على الرسالة';
-                replyBtn.onclick = function() {
-                    replyToMessage(message);
-                };
-                actionsElement.appendChild(replyBtn);
+    // ---------- الرد على رسالة ----------
+    function replyToMessage(message){
+        // نضع نص مختصر للرد في حقل الإدخال
+        messageInput.value = `رد على ${message.sender}: ${message.content.substring(0,30)}... | `;
+        messageInput.focus();
+    }
 
-                messageElement.appendChild(contentElement);
-                messageElement.appendChild(infoElement);
-                messageElement.appendChild(actionsElement);
-            }
-            
-            chatMessages.appendChild(messageElement);
-        }
+    // ---------- تحميل الرسائل (من التخزين) ----------
+    function loadMessages(){
+        chatMessages.innerHTML = '';
+        messages.forEach(m => addMessageToChat(m));
+        scrollChatToBottom();
+    }
 
-        // حذف رسالة
-        function deleteMessage(messageId) {
-            // حذف الرسالة من الملف
-            messageFile = messageFile.filter(msg => msg.id !== messageId);
-            localStorage.setItem('darkwebMessageFile', JSON.stringify(messageFile));
-            
-            // حذف الرسالة من المصفوفة المحلية
-            messages = messages.filter(msg => msg.id !== messageId);
-            localStorage.setItem('darkwebMessages', JSON.stringify(messages));
-            
-            // حذف الرسالة من واجهة المستخدم
-            const messageElement = document.querySelector(`.message[data-id="${messageId}"]`);
-            if (messageElement) {
-                messageElement.remove();
-            }
-            
-            // إضافة رسالة نظام للإعلام بحذف الرسالة
-            const systemMessage = {
-                id: Date.now(),
-                sender: 'النظام',
-                content: `تم حذف رسالة بواسطة ${currentUser}`,
-                timestamp: new Date().toISOString(),
-                isSystem: true
-            };
-            addMessageToFile(systemMessage);
-            addMessageToChat(systemMessage);
-        }
-        
-        // الرد على رسالة
-        function replyToMessage(message) {
-            messageInput.value = `رد على ${message.sender}: ${message.content.substring(0, 30)}... | `;
-            messageInput.focus();
-        }
+    // دمج رسائل مستلمة من تبويب آخر
+    function mergeMessages(remoteMsgs){
+        let changed = false;
+        remoteMsgs.forEach(r => { if (!messages.some(m=>m.id===r.id)){ messages.push(r); changed = true; } });
+        if (changed) { saveAll(); loadMessages(); }
+    }
 
-        // تنسيق التاريخ
-        function formatDate(date) {
-            const hours = date.getHours().toString().padStart(2, '0');
-            const minutes = date.getMinutes().toString().padStart(2, '0');
-            const seconds = date.getSeconds().toString().padStart(2, '0');
-            return `${hours}:${minutes}:${seconds}`;
+    function mergeOnline(remoteOnline){
+        const set = new Set([...onlineUsers, ...remoteOnline]);
+        onlineUsers = Array.from(set);
+        saveAll(); updateOnlineUsersList();
+    }
+
+    // ---------- تحميل من "messageFile" (يحاكي ملف الرسائل في النسخة القديمة) ----------
+    function loadMessagesFromFile(){
+        statusIndicator.textContent = `آخر تحديث: ${formatTime(new Date())}`;
+        // إضافة أي رسائل جديدة موجودة في messageFile
+        const newMsgs = messageFile.filter(f => !messages.some(m => m.id === f.id));
+        if (newMsgs.length){
+            messages = [...messages, ...newMsgs];
+            saveAll();
+            newMsgs.forEach(addMessageToChat);
+            scrollChatToBottom();
         }
-        
-        // إضافة مستخدم إلى قائمة المتصلين
-        function addUserToOnline(username) {
-            if (!onlineUsers.includes(username)) {
-                onlineUsers.push(username);
-                localStorage.setItem('darkwebOnlineUsers', JSON.stringify(onlineUsers));
-                updateOnlineUsersList();
-            }
+    }
+
+    // ---------- حذف الرسائل القديمة ----------
+    function deleteOldMessages(){
+        const now = Date.now();
+        const recent = messageFile.filter(m => (now - new Date(m.timestamp)) <= MAX_MESSAGE_AGE_MS);
+        if (recent.length < messageFile.length){
+            const sys = { id: Date.now().toString(), sender:'النظام', content:`تم حذف ${messageFile.length - recent.length} رسائل قديمة`, timestamp: new Date().toISOString(), isSystem:true };
+            recent.push(sys);
+            messageFile = recent; messages = recent.slice(); saveAll(); loadMessages(); broadcast('new-message', sys);
         }
-        
-        // إزالة مستخدم من قائمة المتصلين
-        function removeUserFromOnline(username) {
-            onlineUsers = onlineUsers.filter(user => user !== username);
-            localStorage.setItem('darkwebOnlineUsers', JSON.stringify(onlineUsers));
-            updateOnlineUsersList();
+    }
+
+    // ---------- مؤشر الكتابة (يُبث للتبويبات الأخرى) ----------
+    function updateTypingStatus(is){
+        if (!currentUser) return;
+        if (is) showTypingIndicator(currentUser, true);
+        else showTypingIndicator(currentUser, false);
+        broadcast('typing', { username: currentUser, isTyping: is });
+    }
+
+    function showTypingIndicator(username, show){
+        if (!show){ typingIndicator.style.display = 'none'; return; }
+        typingIndicator.textContent = `${username} يكتب الآن...`;
+        typingIndicator.style.display = 'block';
+        setTimeout(()=>{ typingIndicator.style.display = 'none'; }, 2500);
+    }
+
+    // ---------- دمج عند بدء التشغيل ----------
+    // إذا كان هناك مستخدم مسجل في localStorage من قبل
+    if (localStorage.getItem('currentDarkwebUser_v2')){
+        currentUser = localStorage.getItem('currentDarkwebUser_v2');
+        currentUserElement.textContent = currentUser;
+        loginContainer.style.display = 'none'; chatContainer.style.display = 'block';
+        addUserToOnlineLocal(currentUser, true);
+        loadMessages(); loadMessagesFromFile(); updateOnlineUsersList();
+    }
+
+    // ---------- أحداث واجهة المستخدم ----------
+    showRegisterBtn.addEventListener('click', (e)=>{ e.preventDefault(); loginContainer.style.display='none'; registerContainer.style.display='block'; });
+    showLoginBtn.addEventListener('click', (e)=>{ e.preventDefault(); registerContainer.style.display='none'; loginContainer.style.display='block'; });
+
+    registerBtn.addEventListener('click', async ()=>{
+        const newUsername = document.getElementById('newUsername').value.trim();
+        const newPassword = document.getElementById('newPassword').value;
+        const confirmPassword = document.getElementById('confirmPassword').value;
+        registerError.style.display='none'; registerSuccess.style.display='none';
+        if (!newUsername || !newPassword || !confirmPassword){ registerError.textContent='يرجى ملء جميع الحقول'; registerError.style.display='block'; return; }
+        if (newPassword !== confirmPassword){ registerError.textContent='كلمات المرور غير متطابقة'; registerError.style.display='block'; return; }
+        if (users.some(u=>u.username===newUsername)){ registerError.textContent='اسم المستخدم موجود بالفعل'; registerError.style.display='block'; return; }
+        const hashed = await hashPassword(newPassword);
+        users.push({ username:newUsername, passwordHash:hashed });
+        saveAll();
+        registerSuccess.textContent='تم إنشاء الحساب بنجاح! يمكنك الآن تسجيل الدخول'; registerSuccess.style.display='block';
+        document.getElementById('newUsername').value=''; document.getElementById('newPassword').value=''; document.getElementById('confirmPassword').value='';
+        setTimeout(()=>{ registerContainer.style.display='none'; loginContainer.style.display='block'; registerSuccess.style.display='none'; }, 1500);
+    });
+
+    loginBtn.addEventListener('click', async ()=>{
+        const username = document.getElementById('username').value.trim();
+        const password = document.getElementById('password').value;
+        loginError.style.display='none';
+        if (!username || !password){ loginError.textContent='يرجى إدخال اسم المستخدم وكلمة المرور'; loginError.style.display='block'; return; }
+        const hashed = await hashPassword(password);
+        const user = users.find(u => u.username === username && u.passwordHash === hashed);
+        if (user){
+            currentUser = username;
+            localStorage.setItem('currentDarkwebUser_v2', currentUser);
+            currentUserElement.textContent = currentUser;
+            loginContainer.style.display='none'; chatContainer.style.display='block';
+            addUserToOnlineLocal(currentUser, true);
+            loadMessages(); loadMessagesFromFile(); updateOnlineUsersList();
+            // رسالة نظام
+            const sys = { id: Date.now().toString(), sender:'النظام', content:`${currentUser} انضم إلى المحادثة`, timestamp: new Date().toISOString(), isSystem:true };
+            messageFile.push(sys); messages.push(sys); saveAll(); addMessageToChat(sys); broadcast('new-message', sys);
+        } else {
+            loginError.textContent='اسم المستخدم أو كلمة المرور غير صحيحة'; loginError.style.display='block';
         }
-        
-        // تحديث قائمة المستخدمين المتصلين
-        function updateOnlineUsersList() {
-            const onlineUsersHeader = document.querySelector('.online-users-header');
-            const onlineUsersList = document.createElement('div');
-            
-            // حذف العناصر القديمة باستثناء العنوان
-            while (onlineUsersContainer.childNodes.length > 1) {
-                onlineUsersContainer.removeChild(onlineUsersContainer.lastChild);
-            }
-            
-            // إضافة المستخدمين المتصلين
-            onlineUsers.forEach(user => {
-                const userElement = document.createElement('div');
-                userElement.classList.add('online-user');
-                userElement.innerHTML = `<i class="fas fa-circle"></i> ${user} ${user === currentUser ? '(أنت)' : ''}`;
-                onlineUsersContainer.appendChild(userElement);
-            });
-            
-            // تحديث عدد المستخدمين المتصلين في العنوان
-            onlineUsersHeader.innerHTML = `<i class="fas fa-circle"></i> المستخدمون المتصلون (${onlineUsers.length})`;
-        }
-        
-        // تحديث حالة الكتابة
-        function updateTypingStatus(isTyping) {
-            if (isTyping) {
-                typingIndicator.textContent = `${currentUser} يكتب الآن`;
-                typingIndicator.style.display = 'block';
-            } else {
-                typingIndicator.style.display = 'none';
-            }
-        }
-        
-        // حذف الرسائل القديمة (أكثر من 120 ثانية)
-        function deleteOldMessages() {
-            const now = new Date();
-            
-            // الاحتفاظ فقط بالرسائل التي تم إرسالها خلال آخر 120 ثانية
-            const recentMessages = messageFile.filter(msg => {
-                const msgDate = new Date(msg.timestamp);
-                const diffSeconds = (now - msgDate) / 1000;
-                return diffSeconds <= 120; // 120 ثانية = دقيقتان
-            });
-            
-            // إذا كان هناك رسائل تم حذفها، أضف رسالة نظام
-            if (recentMessages.length < messageFile.length) {
-                const systemMessage = {
-                    id: Date.now(),
-                    sender: 'النظام',
-                    content: `تم حذف ${messageFile.length - recentMessages.length} رسائل قديمة`,
-                    timestamp: new Date().toISOString(),
-                    isSystem: true
-                };
-                recentMessages.push(systemMessage);
-            }
-            
-            // تحديث ملف الرسائل
-            messageFile = recentMessages;
-            localStorage.setItem('darkwebMessageFile', JSON.stringify(recentMessages));
-            
-            // تحديث الرسائل المعروضة في واجهة المستخدم
-            if (currentUser) {
-                chatMessages.innerHTML = '';
-                recentMessages.forEach(message => {
-                    addMessageToChat(message);
-                });
-                messages = recentMessages;
-                localStorage.setItem('darkwebMessages', JSON.stringify(messages));
-            }
-        }
-        
-        // تحديث الرسائل كل 5 ثوانٍ
-        setInterval(function() {
-            if (currentUser) {
-                loadMessagesFromFile();
-                updateOnlineUsersList();
-            }
-        }, 5000);
-        
-        // حذف الرسائل القديمة كل 120 ثانية
-        setInterval(function() {
-            deleteOldMessages();
-        }, 120000);
-        
-        // تحديث مؤشر الحالة عند بدء التشغيل
-        statusIndicator.innerHTML = `<i class="fas fa-sync-alt"></i> آخر تحديث: ${formatDate(new Date())}`;
+    });
+
+    logoutBtn.addEventListener('click', ()=>{
+        if (!currentUser) return;
+        const sys = { id: Date.now().toString(), sender:'النظام', content:`${currentUser} غادر المحادثة`, timestamp: new Date().toISOString(), isSystem:true };
+        messageFile.push(sys); messages.push(sys); saveAll(); addMessageToChat(sys); broadcast('new-message', sys);
+        removeUserFromOnlineLocal(currentUser, true);
+        localStorage.removeItem('currentDarkwebUser_v2'); currentUser=null;
+        chatContainer.style.display='none'; loginContainer.style.display='block'; document.getElementById('username').value=''; document.getElementById('password').value='';
+    });
+
+    sendBtn.addEventListener('click', sendMessage);
+    messageInput.addEventListener('keypress', (e)=>{ if (e.key==='Enter'){ e.preventDefault(); sendMessage(); } });
+
+    messageInput.addEventListener('input', ()=>{
+        if (!isTyping && messageInput.value.trim() !== ''){ isTyping = true; updateTypingStatus(true); }
+        clearTimeout(typingTimeout);
+        typingTimeout = setTimeout(()=>{ isTyping=false; updateTypingStatus(false); }, 1500);
+    });
+
+    // التحديث الدوري — محليًا فقط (حافظنا على المنطق السابق لكن حسنَّاه)
+    setInterval(()=>{ if (currentUser){ loadMessagesFromFile(); updateOnlineUsersList(); } }, 5000);
+    setInterval(deleteOldMessages, 120000);
+
+    // وظائف لمساعدة المزامنة
+    function mergeInitialStorage(){
+        users = JSON.parse(localStorage.getItem(STORAGE_USERS) || '[]');
+        messages = JSON.parse(localStorage.getItem(STORAGE_MESSAGES) || '[]');
+        messageFile = JSON.parse(localStorage.getItem(STORAGE_MESSAGE_FILE) || '[]');
+        onlineUsers = JSON.parse(localStorage.getItem(STORAGE_ONLINE) || '[]');
+    }
+
+    mergeInitialStorage();
+
     </script>
 </body>
 </html>
